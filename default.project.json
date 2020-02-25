@@ -1,0 +1,24 @@
+{
+  "name": "roblox-dump-parser",
+  "tree": {
+    "$className": "DataModel",
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": true
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "DumpParser": {
+        "$path": "src",
+        "Request": {
+          "$path": "lib/request/src",
+          "Promise": {
+            "$path": "lib/request/lib/Promise/lib"
+          }
+        }
+      }
+    }
+  }
+}

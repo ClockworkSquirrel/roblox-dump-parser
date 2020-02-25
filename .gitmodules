@@ -1,0 +1,3 @@
+[submodule "lib/request"]
+	path = lib/request
+	url = https://github.com/ClockworkSquirrel/request
