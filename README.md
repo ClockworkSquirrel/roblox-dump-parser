@@ -83,7 +83,9 @@ end
 ```
 
 > **Expected Output**\
-> `BackParamB = 0.5`
+> `Anchored = true`\
+> `BackParamA = -0.5`\
+> `BackParamB = 0.5`\
 > `BackSurface = Enum.SurfaceType.Smooth`\
 > `BackSurfaceInput = Enum.InputType.NoInput`\
 > `BottomParamA = -0.5`\
@@ -125,4 +127,5 @@ end
 > `TopSurface = Enum.SurfaceType.Studs`\
 > `TopSurfaceInput = Enum.InputType.NoInput`\
 > `Transparency = 0`\
-> `Velocity = 0, 0, 0`
+> `Velocity = 0, 0, 0`\
+> `Shape = Enum.PartType.Block`\
