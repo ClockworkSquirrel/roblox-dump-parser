@@ -1,12 +1,16 @@
 local Config = require(script.Config)
 local http = require(script.Request)
-local Parser = {}
+
+local Parser = {
+	_classes = {}
+}
 
 local clireq = http.default({
 	url = Config.dumpUrl,
 	json = true
 })
 
+--[[
 local function IF(Condition, IfTrue, IfFalse, ...)
 	if (type(Condition) == "function" and Condition(...) or Condition) then
 		return IfTrue
@@ -32,6 +36,7 @@ local function RecursiveMerge(origin, ...)
 
 	return origin
 end
+--]]
 
 local function FilterTable(origin, filterFn)
 	local filterResults = {}
@@ -64,14 +69,12 @@ function Parser:GetDump()
 	return Parser._dump
 end
 
-function Parser:FindClassInDump(ClassName, CaseSensitive)
-	CaseSensitive = IF(type(CaseSensitive) == "boolean", CaseSensitive, true)
-	ClassName = CaseSensitive and ClassName or string.lower(ClassName)
-
+function Parser:FindClassInDump(ClassName)
+	ClassName = string.lower(ClassName)
 	local dump = Parser:GetDump()
 
 	for _, classMember in next, dump.Classes do
-		local memberName = classMember.Name
+		local memberName = string.lower(classMember.Name)
 
 		if (memberName == ClassName) then
 			return classMember
@@ -102,21 +105,56 @@ function Parser:GetClassInheritance(ClassName)
 end
 
 function Parser:BuildClass(ClassName)
+	local lowerClassName = string.lower(ClassName)
+
+	if (Parser._classes[lowerClassName]) then
+		return Parser._classes[lowerClassName]
+	end
+
 	local formedClass
 
 	local inheritance = Parser:GetClassInheritance(ClassName)
 	assert(inheritance, string.format("Couldn't build inheritance array for \"%s\"", ClassName))
 
-	local index = 0
+	local index, memberHistory, registeredMembers = 0, {}, {}
 	for _, ancestor in next, inheritance do
 		index = index + 1
 
-		if (index == 1) then formedClass = ancestor else
-			formedClass = RecursiveMerge(formedClass, ancestor)
+		if (index == 1) then
+			formedClass = ancestor
+
+			if (formedClass.Members) then
+				for _, member in ipairs(formedClass.Members) do
+					registeredMembers[#registeredMembers + 1] = member.Name
+				end
+			end
+		else
+			for key, value in next, ancestor do
+				if (key == "Members") then
+					memberHistory[#memberHistory + 1] = value
+				else
+					formedClass[key] = value
+				end
+			end
+		end
+	end
+
+	if (not formedClass.Members) then
+		formedClass.Members = {}
+	end
+
+	for _, memberTable in ipairs(memberHistory) do
+		for _, member in ipairs(memberTable) do
+			if (not FindInTable(member.Name, registeredMembers)) then
+				formedClass.Members[#formedClass.Members + 1] = member
+				registeredMembers[#registeredMembers + 1] = member.Name
+			end
 		end
 	end
 
 	assert(formedClass, string.format("Couldn't build class for \"%s\"", ClassName))
+	Parser._classes[lowerClassName] = formedClass
+
 	return formedClass
 end
 
@@ -141,7 +179,8 @@ function Parser:GetPropertiesSafeRaw(ClassName)
 		local insecure = (property.Security.Read == "None" and property.Security.Write == "None")
 		local safeTags = not (
 			FindInTable("ReadOnly", tags) or FindInTable("Deprecated", tags) or FindInTable("RobloxSecurity", tags)
-			or FindInTable("NotAccessibleSecurity", tags) or FindInTable("RobloxScriptSecurity", tags)
+			or FindInTable("NotAccessibleSecurity", tags) or FindInTable("RobloxScriptSecurity", tags) or
+			FindInTable("NotScriptable", tags)
 		)
 
 		return ((#tags == 0 or safeTags) and insecure)
