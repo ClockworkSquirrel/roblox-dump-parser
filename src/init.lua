@@ -1,3 +1,13 @@
+--[[
+<metadata>
+	Author: ClockworkSquirrel
+	Name: DumpParser
+	Description: Fetch and parses the latest client API dump.
+	Updated: 2020-03-03
+	Release: 0.1.2-pre
+</metadata>
+--]]
+
 local Config = require(script.Config)
 local http = require(script.Request)
 
@@ -10,33 +20,19 @@ local clireq = http.default({
 	json = true
 })
 
---[[
-local function IF(Condition, IfTrue, IfFalse, ...)
-	if (type(Condition) == "function" and Condition(...) or Condition) then
-		return IfTrue
-	end
+local function CopyTable(origin)
+	if (type(origin) == "table") then
+		local copy = {}
 
-	return IfFalse
-end
-
-local function RecursiveMerge(origin, ...)
-	local tables = {...}
-
-	for _, currentTable in next, tables do
-		if (type(currentTable) == "table") then
-			for key, value in next, currentTable do
-				if (type(origin[key]) == "table" and type(currentTable[key]) == "table") then
-					origin[key] = RecursiveMerge(origin[key], currentTable[key])
-				else
-					origin[key] = value
-				end
-			end
+		for key, value in next, origin do
+			copy[CopyTable(key)] = CopyTable(value)
 		end
+
+		return copy
 	end
 
 	return origin
 end
---]]
 
 local function FilterTable(origin, filterFn)
 	local filterResults = {}
@@ -73,11 +69,11 @@ function Parser:FindClassInDump(ClassName)
 	ClassName = string.lower(ClassName)
 	local dump = Parser:GetDump()
 
-	for _, classMember in next, dump.Classes do
+	for index, classMember in ipairs(dump.Classes) do
 		local memberName = string.lower(classMember.Name)
 
 		if (memberName == ClassName) then
-			return classMember
+			return CopyTable(classMember)
 		end
 	end
 end
